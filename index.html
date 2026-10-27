@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ada y la Máquina Analítica - Juego Educativo</title>
+  <style>
+    :root {
+      --bg-dark: #120924;
+      --bg-card: #20113b;
+      --bg-card-light: #2d1852;
+      --accent-purple: #7209b7;
+      --accent-blue: #4cc9f0;
+      --accent-yellow: #ffd166;
+      --accent-green: #06d6a0;
+      --accent-red: #ef476f;
+      --text-light: #f8f9fa;
+      --text-muted: #b8c0e0;
+      --border-pixel: 4px solid #000;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      font-family: 'Courier New', Courier, monospace, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Contenedor Principal */
+    #app-container {
+      width: 100%;
+      max-width: 1000px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Pantallas */
+    .screen {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Estilos Pixel Art Header */
+    h1, h2, h3 {
+      text-align: center;
+      color: var(--accent-yellow);
+      text-shadow: 3px 3px 0px #000;
+      margin: 10px 0;
+    }
+
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.6rem; color: var(--accent-blue); }
+
+    .retro-panel {
+      background-color: var(--bg-card);
+      border: var(--border-pixel);
+      box-shadow: 6px 6px 0px #000;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    /* Botones Retro */
+    .btn {
+      background-color: var(--accent-purple);
+      color: var(--text-light);
+      border: var(--border-pixel);
+      box-shadow: 4px 4px 0px #000;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: transform 0.1s, background-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 5px;
+      touch-action: manipulation;
+    }
+
+    .btn:hover {
+      background-color: #8b12dd;
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px #000;
+    }
+
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #000;
+    }
+
+    .btn-yellow { background-color: var(--accent-yellow); color: #000; }
+    .btn-yellow:hover { background-color: #ffe082; }
+    .btn-green { background-color: var(--accent-green); color: #000; }
+    .btn-green:hover { background-color: #31e9b6; }
+    .btn-red { background-color: var(--accent-red); color: #fff; }
+    .btn-red:hover { background-color: #f26284; }
+
+    /* Pantalla Inicio */
+    .intro-dialog {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: var(--bg-card-light);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 5px solid var(--accent-yellow);
+    }
+
+    .character-avatar {
+      font-size: 3rem;
+      background: var(--bg-dark);
+      padding: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-yellow);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* Layout del Juego */
+    .game-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      width: 100%;
+    }
+
+    @media (min-width: 800px) {
+      .game-layout {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Canvas Grid */
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      background-color: #1a1a2e;
+      border: var(--border-pixel);
+      box-shadow: 6px 6px 0px #000;
+      border-radius: 8px;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      background: var(--bg-card-light);
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .energy-bar-bg {
+      width: 100px;
+      height: 16px;
+      background: #444;
+      border-radius: 8px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      border: 1px solid #000;
+    }
+
+    .energy-bar-fill {
+      height: 100%;
+      background: var(--accent-yellow);
+      width: 100%;
+      transition: width 0.3s;
+    }
+
+    /* Programación por Bloques */
+    .block-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .block-btn {
+      background: var(--bg-card-light);
+      border: 2px solid var(--accent-blue);
+      color: var(--text-light);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    .block-btn:hover {
+      background: var(--accent-blue);
+      color: #000;
+    }
+
+    .sequence-container {
+      min-height: 160px;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #150a28;
+      border: 2px dashed var(--accent-purple);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 15px;
+    }
+
+    .sequence-item {
+      background: var(--bg-card-light);
+      border: 2px solid var(--accent-purple);
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      animation: fadeIn 0.2s ease-in;
+    }
+
+    .sequence-item.active {
+      border-color: var(--accent-yellow);
+      background: var(--accent-purple);
+      box-shadow: 0 0 10px var(--accent-yellow);
+    }
+
+    .sequence-item .remove-btn {
+      color: var(--accent-red);
+      cursor: pointer;
+      font-weight: bold;
+      padding: 0 5px;
+    }
+
+    /* Mensajes y Feedback */
+    .feedback-box {
+      min-height: 50px;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 0.95rem;
+      text-align: center;
+      display: none;
+    }
+
+    .feedback-box.error {
+      display: block;
+      background: rgba(239, 71, 111, 0.2);
+      border: 2px solid var(--accent-red);
+      color: #ff99b0;
+    }
+
+    .feedback-box.info {
+      display: block;
+      background: rgba(76, 201, 240, 0.2);
+      border: 2px solid var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    /* Modales / Tarjetas al completar */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: var(--border-pixel);
+      box-shadow: 8px 8px 0px #000;
+      max-width: 550px;
+      width: 100%;
+      padding: 25px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .fact-card {
+      background: var(--bg-card-light);
+      border-left: 4px solid var(--accent-yellow);
+      padding: 15px;
+      margin: 15px 0;
+      text-align: left;
+      font-style: italic;
+      color: var(--text-light);
+    }
+
+    /* Pantalla Final */
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .summary-table th, .summary-table td {
+      border: 1px solid var(--accent-purple);
+      padding: 10px;
+      text-align: center;
+    }
+
+    .summary-table th {
+      background: var(--bg-card-light);
+      color: var(--accent-yellow);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+
+  <!-- ================= PANTALLA 1: INICIO ================= -->
+  <div id="screen-intro" class="screen active">
+    <h1>ADA Y LA MÁQUINA ANALÍTICA</h1>
+    <h2>Un desafío de algoritmos y creatividad</h2>
+
+    <div class="retro-panel">
+      <div class="intro-dialog">
+        <div class="character-avatar">👩‍🔬</div>
+        <div>
+          <strong>Ada Lovelace:</strong>
+          <p>"¡Hola! Soy Ada. Junto a mi equipo estamos ensamblando la Máquina Analítica. Necesito tu ayuda para programar mis movimientos y reparar todas las piezas del motor."</p>
+        </div>
+      </div>
+
+      <div class="intro-dialog">
+        <div class="character-avatar">🤴</div>
+        <div>
+          <strong>Príncipe Carlos (Asistente Técnico):</strong>
+          <p>"¡Hola, Ada! Tengo listo el diagnóstico del sistema y unos mates para recuperar energía durante el trabajo duro."</p>
+        </div>
+      </div>
+
+      <div class="intro-dialog">
+        <div class="character-avatar">👸</div>
+        <div>
+          <strong>Princesa Victoria (Ingeniera Jefe):</strong>
+          <p>"Diseñé los planos de la cuadrícula. Ojo con los escapes de vapor y asegurate de armar una secuencia eficiente."</p>
+        </div>
+      </div>
+
+      <p style="margin-top: 15px;"><strong>¿Cómo jugar?</strong></p>
+      <ul>
+        <li><strong>No movés al personaje en tiempo real:</strong> Seleccioná bloques para armar una secuencia de comandos.</li>
+        <li>Presioná <strong>"Ejecutar Algoritmo"</strong> para ver cómo Ada cumple la secuencia paso a paso.</li>
+        <li>Si tu algoritmo falla (chocás contra un muro, caés al agua/vapor o te quedás sin energía), vas a poder corregir el paso donde ocurrió el error.</li>
+        <li>Recolectá todas las piezas de cada nivel para ganar. ¡Tomá mate 🧉 para recargar energía!</li>
+      </ul>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn btn-yellow" onclick="startGame()">¡EMPEZAR LAAVENTURA! ⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PANTALLA 2: JUEGO ================= -->
+  <div id="screen-game" class="screen">
+    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap;">
+      <h2 id="level-title">Nivel 1</h2>
+      <button class="btn btn-red" onclick="showIntroScreen()" style="padding: 5px 10px; font-size: 0.8rem;">⬅ Menu Principal</button>
+    </div>
+
+    <!-- Dialogo del nivel -->
+    <div class="intro-dialog" style="width: 100%; margin-bottom: 10px;">
+      <div class="character-avatar" id="level-avatar">👸</div>
+      <div>
+        <strong id="level-speaker">Princesa Victoria:</strong>
+        <p id="level-dialog-text">¡Armá tu primer algoritmo para alcanzar la pieza de engranaje!</p>
+      </div>
+    </div>
+
+    <div class="game-layout">
+      <!-- Columna Izquierda: Canvas del Tablero -->
+      <div class="canvas-container retro-panel">
+        <canvas id="gameCanvas" width="350" height="350"></canvas>
+        <div class="status-bar">
+          <div>⚙️ Piezas: <span id="stat-pieces">0/1</span></div>
+          <div>⚡ Energía: 
+            <div class="energy-bar-bg">
+              <div id="energy-fill" class="energy-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+        <div id="feedback-box" class="feedback-box"></div>
+      </div>
+
+      <!-- Columna Derecha: Editor de Algoritmos -->
+      <div class="retro-panel">
+        <h3>Paleta de Instrucciones</h3>
+        <div class="block-palette" id="block-palette">
+          <!-- Se cargan dinámicamente -->
+        </div>
+
+        <h3>Secuencia del Algoritmo (<span id="instruction-count">0</span> bloques)</h3>
+        <div class="sequence-container" id="sequence-container">
+          <p style="color: var(--text-muted); text-align: center; margin-top: 50px;" id="empty-msg">Tocá las instrucciones arriba para construir tu código.</p>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-green" id="btn-execute" onclick="executeAlgorithm()">▶ Ejecutar</button>
+          <button class="btn btn-yellow" id="btn-reset" onclick="resetLevelState()">↺ Reiniciar</button>
+          <button class="btn btn-red" onclick="clearSequence()">🗑️ Limpiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PANTALLA 3: RESUMEN FINAL ================= -->
+  <div id="screen-end" class="screen">
+    <h1>¡MÁQUINA ANALÍTICA OPERATIVA! 🎉</h1>
+    <h2>¡Felicitaciones, programadora/or!</h2>
+
+    <div class="retro-panel">
+      <div class="intro-dialog">
+        <div class="character-avatar">👩‍🔬</div>
+        <div>
+          <strong>Ada Lovelace:</strong>
+          <p>"¡Lo logramos! Con tus algoritmos pudimos poner en marcha todo el sistema mecánico. Demostraste gran pensamiento lógico y capacidad para depurar errores."</p>
+        </div>
+      </div>
+
+      <h3>Resumen de Eficiencia Algorítmica</h3>
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Nivel</th>
+            <th>Bloques Utilizados</th>
+            <th>Mínimo Recomendado</th>
+          </tr>
+        </thead>
+        <tbody id="summary-body">
+          <!-- Cargado por JS -->
+        </tbody>
+      </table>
+
+      <p style="text-align: center; color: var(--accent-yellow); font-size: 1.1rem; margin: 15px 0;">
+        ¿Podés resolver los niveles con menos instrucciones? ¡Intentá optimizar tu código!
+      </p>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn btn-yellow" onclick="startGame()">🔄 REJUGAR DESAFÍO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL HISTÓRICO AL TERMINAR NIVEL ================= -->
+  <div id="modal-fact" class="modal-overlay">
+    <div class="modal-content">
+      <h2 style="color: var(--accent-green);">¡NIVEL COMPLETADO! ⚙️✨</h2>
+      <div id="modal-avatar" class="character-avatar" style="margin: 10px auto;">👩‍🔬</div>
+      <p id="modal-congrats">¡Excelente algoritmo!</p>
+      
+      <div class="fact-card">
+        <strong>📜 Dato Histórico sobre Ada Lovelace:</strong>
+        <p id="fact-text" style="margin-top: 5px;"></p>
+      </div>
+
+      <button class="btn btn-yellow" id="modal-next-btn" onclick="nextLevel()">Siguiente Nivel ➔</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ==================== DATOS DE NIVELES ==================== */
+  const LEVELS = [
+    {
+      id: 1,
+      title: "Nivel 1: Primeros Pasos Mecánicos",
+      speaker: "Princesa Victoria (Ingeniera Jefe)",
+      avatar: "👸",
+      dialog: "¡Hola Ada! Diseñé el mapa de este sector. Necesitamos recoger el engranaje suelto. ¡Armá una secuencia para avanzar y recoger la pieza!",
+      gridSize: 5,
+      maxEnergy: 8,
+      start: { x: 0, y: 2, dir: 0 }, // 0: Der, 1: Abajo, 2: Izq, 3: Arriba
+      grid: [
+        [0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 3], // 3 = Pieza
+        [0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0]
+      ],
+      availableBlocks: ['MOVE', 'TURN_L', 'TURN_R', 'PICKUP', 'MATE'],
+      minBlocks: 5,
+      fact: "En 1843, Ada Lovelace creó el primer algoritmo destinado a ser procesado por una máquina (la Máquina Analítica de Charles Babbage), convirtiéndose en la primera persona programadora de la historia."
+    },
+    {
+      id: 2,
+      title: "Nivel 2: Escapes de Vapor y Mates",
+      speaker: "Príncipe Carlos (Asistente Técnico)",
+      avatar: "🤴",
+      dialog: "¡Ada, la presión de vapor rompió los tubos! Te preparé unos mates 🧉 para recuperar energía. Usá el comando 'Saltar' para esquivar el vapor.",
+      gridSize: 6,
+      maxEnergy: 6, // Requiere tomar mate
+      start: { x: 0, y: 0, dir: 1 }, // Mirando abajo
+      grid: [
+        [0, 1, 0, 0, 0, 0],
+        [2, 1, 0, 1, 1, 0], // 2 = Escape de vapor
+        [0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 0, 0, 0],
+        [0, 0, 2, 0, 1, 3],
+        [0, 0, 0, 0, 0, 0]
+      ],
+      availableBlocks: ['MOVE', 'TURN_L', 'TURN_R', 'JUMP', 'MATE', 'PICKUP'],
+      minBlocks: 10,
+      fact: "En sus famosas 'Notas', Ada vislumbró que las computadoras no solo servirían para calcular números, sino que podrían manipular símbolos, crear música y procesar arte."
+    },
+    {
+      id: 3,
+      title: "Nivel 3: El Gran Algoritmo (Bucles)",
+      speaker: "Ada Lovelace (Inventora)",
+      avatar: "👩‍🔬",
+      dialog: "¡Sector final! Hay varias piezas dispersas. Usá el bloque 'Repetir 3x' para ejecutar bucles y hacer el algoritmo más corto y eficiente.",
+      gridSize: 7,
+      maxEnergy: 16,
+      start: { x: 0, y: 0, dir: 0 },
+      grid: [
+        [0, 0, 0, 0, 1, 0, 3],
+        [1, 1, 1, 0, 1, 0, 0],
+        [3, 0, 0, 0, 0, 0, 1],
+        [0, 1, 1, 1, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 0, 1, 1, 1, 0],
+        [3, 0, 0, 0, 0, 0, 0]
+      ],
+      availableBlocks: ['MOVE', 'TURN_L', 'TURN_R', 'JUMP', 'MATE', 'PICKUP', 'LOOP_3'],
+      minBlocks: 12,
+      fact: "El algoritmo de Ada calculaba los Números de Bernoulli. La estructura de bucles que usaste en este nivel es la base de toda la programación moderna."
+    }
+  ];
+
+  /* NOMBRES Y DICCIONARIO DE BLOQUES */
+  const BLOCK_TYPES = {
+    'MOVE': { name: 'Avanzar ➔', code: 'MOVE', icon: '🚶' },
+    'TURN_L': { name: 'Girar Izq ↺', code: 'TURN_L', icon: '↺' },
+    'TURN_R': { name: 'Girar Der ↻', code: 'TURN_R', icon: '↻' },
+    'JUMP': { name: 'Saltar ⤯', code: 'JUMP', icon: '🦘' },
+    'MATE': { name: 'Tomar Mate 🧉', code: 'MATE', icon: '🧉' },
+    'PICKUP': { name: 'Recoger Pieza ⚙️', code: 'PICKUP', icon: '⚙️' },
+    'LOOP_3': { name: 'Repetir 3x 🔁', code: 'LOOP_3', icon: '🔁' }
+  };
+
+  /* ==================== ESTADO DEL JUEGO ==================== */
+  let currentLevelIdx = 0;
+  let currentSequence = [];
+  let isExecuting = false;
+  let playerState = { x: 0, y: 0, dir: 0, energy: 0, maxEnergy: 0 };
+  let levelGrid = [];
+  let totalCollected = 0;
+  let targetPieces = 0;
+  let blocksUsedPerLevel = [0, 0, 0];
+
+  // Canvas
+  let canvas, ctx;
+  const TILE_SIZE = 50;
+
+  // Audio Context sintético para sonido retro sin librerías externas
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  function playBeep(freq, type = 'sine', duration = 0.1) {
+    if (!audioCtx) return;
+    try {
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+  }
+
+  /* ==================== NAVEGACIÓN DE PANTALLAS ==================== */
+  function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+
+  function showIntroScreen() {
+    showScreen('screen-intro');
+  }
+
+  function startGame() {
+    currentLevelIdx = 0;
+    blocksUsedPerLevel = [0, 0, 0];
+    loadLevel(currentLevelIdx);
+    showScreen('screen-game');
+  }
+
+  /* ==================== CARGA Y LÓGICA DE NIVEL ==================== */
+  function loadLevel(idx) {
+    const level = LEVELS[idx];
+    document.getElementById('level-title').innerText = level.title;
+    document.getElementById('level-speaker').innerText = level.speaker;
+    document.getElementById('level-avatar').innerText = level.avatar;
+    document.getElementById('level-dialog-text').innerText = level.dialog;
+
+    // Copia profunda de grilla
+    levelGrid = JSON.parse(JSON.stringify(level.grid));
+    
+    // Contar piezas
+    targetPieces = 0;
+    for (let r = 0; r < level.gridSize; r++) {
+      for (let c = 0; c < level.gridSize; c++) {
+        if (levelGrid[r][c] === 3) targetPieces++;
+      }
+    }
+    totalCollected = 0;
+
+    // Estado personaje
+    playerState = {
+      x: level.start.x,
+      y: level.start.y,
+      dir: level.start.dir,
+      energy: level.maxEnergy,
+      maxEnergy: level.maxEnergy
+    };
+
+    currentSequence = [];
+    isExecuting = false;
+    hideFeedback();
+
+    // Configurar Canvas
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    canvas.width = level.gridSize * TILE_SIZE;
+    canvas.height = level.gridSize * TILE_SIZE;
+
+    // Cargar Paleta de Bloques
+    const paletteEl = document.getElementById('block-palette');
+    paletteEl.innerHTML = '';
+    level.availableBlocks.forEach(bKey => {
+      const bInfo = BLOCK_TYPES[bKey];
+      const btn = document.createElement('button');
+      btn.className = 'block-btn';
+      btn.innerHTML = `${bInfo.icon} ${bInfo.name}`;
+      btn.onclick = () => { initAudio(); addBlockToSequence(bKey); };
+      paletteEl.appendChild(btn);
+    });
+
+    renderSequenceUI();
+    updateStatusBar();
+    drawGrid();
+  }
+
+  function resetLevelState() {
+    if (isExecuting) return;
+    const level = LEVELS[currentLevelIdx];
+    levelGrid = JSON.parse(JSON.stringify(level.grid));
+    playerState = {
+      x: level.start.x,
+      y: level.start.y,
+      dir: level.start.dir,
+      energy: level.maxEnergy,
+      maxEnergy: level.maxEnergy
+    };
+    totalCollected = 0;
+    updateStatusBar();
+    hideFeedback();
+    drawGrid();
+  }
+
+  /* ==================== MANEJO DE SECUENCIA / BLOQUES ==================== */
+  function addBlockToSequence(type) {
+    if (isExecuting) return;
+    playBeep(400, 'square', 0.05);
+    currentSequence.push(type);
+    renderSequenceUI();
+  }
+
+  function removeBlockFromSequence(index) {
+    if (isExecuting) return;
+    playBeep(250, 'square', 0.05);
+    currentSequence.splice(index, 1);
+    renderSequenceUI();
+  }
+
+  function clearSequence() {
+    if (isExecuting) return;
+    playBeep(200, 'sawtooth', 0.1);
+    currentSequence = [];
+    renderSequenceUI();
+    hideFeedback();
+  }
+
+  function renderSequenceUI() {
+    const container = document.getElementById('sequence-container');
+    const emptyMsg = document.getElementById('empty-msg');
+    const countEl = document.getElementById('instruction-count');
+
+    countEl.innerText = currentSequence.length;
+
+    if (currentSequence.length === 0) {
+      container.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 50px;" id="empty-msg">Tocá las instrucciones arriba para construir tu código.</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+    currentSequence.forEach((bKey, idx) => {
+      const bInfo = BLOCK_TYPES[bKey];
+      const item = document.createElement('div');
+      item.className = 'sequence-item';
+      item.id = `seq-item-${idx}`;
+      item.innerHTML = `
+        <span>${idx + 1}. ${bInfo.icon} ${bInfo.name}</span>
+        <span class="remove-btn" onclick="removeBlockFromSequence(${idx})">✖</span>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  /* ==================== RENDERIZADO DEL TABLERO (CANVAS) ==================== */
+  function drawGrid() {
+    const level = LEVELS[currentLevelIdx];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < level.gridSize; r++) {
+      for (let c = 0; c < level.gridSize; c++) {
+        const x = c * TILE_SIZE;
+        const y = r * TILE_SIZE;
+
+        // Fondo Baldosa
+        ctx.fillStyle = ((r + c) % 2 === 0) ? '#281745' : '#1f1038';
+        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+        // Borde grilla
+        ctx.strokeStyle = '#3b2366';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+        // Contenido según celda
+        const cell = levelGrid[r][c];
+        if (cell === 1) { // Muro / Engranajes de máquina
+          ctx.fillStyle = '#4a4e69';
+          ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+          ctx.fillStyle = '#22223b';
+          ctx.fillRect(x + 8, y + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+          ctx.font = '20px sans-serif';
+          ctx.fillText('⚙️', x + 12, y + 32);
+        } else if (cell === 2) { // Escape de vapor / Peligro
+          ctx.fillStyle = '#1e385c';
+          ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          ctx.font = '22px sans-serif';
+          ctx.fillText('💨', x + 12, y + 33);
+        } else if (cell === 3) { // Pieza a recolectar
+          ctx.font = '24px sans-serif';
+          ctx.fillText('🔩', x + 12, y + 34);
+        }
+      }
+    }
+
+    // Dibujar Personaje Ada
+    drawAda(playerState.x, playerState.y, playerState.dir);
+  }
+
+  function drawAda(gridX, gridY, dir) {
+    const px = gridX * TILE_SIZE + TILE_SIZE / 2;
+    const py = gridY * TILE_SIZE + TILE_SIZE / 2;
+
+    ctx.save();
+    ctx.translate(px, py);
+
+    // Indicador de dirección (sombra)
+    ctx.fillStyle = 'rgba(255, 209, 102, 0.3)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Emoji Ada o Sprite vectorial
+    ctx.font = '26px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👩‍🔬', 0, 0);
+
+    // Flecha indicadora de orientación
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath();
+    if (dir === 0) ctx.arc(16, 0, 4, 0, Math.PI * 2); // Der
+    if (dir === 1) ctx.arc(0, 16, 4, 0, Math.PI * 2); // Abajo
+    if (dir === 2) ctx.arc(-16, 0, 4, 0, Math.PI * 2); // Izq
+    if (dir === 3) ctx.arc(0, -16, 4, 0, Math.PI * 2); // Arriba
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function updateStatusBar() {
+    document.getElementById('stat-pieces').innerText = `${totalCollected}/${targetPieces}`;
+    const pct = Math.max(0, (playerState.energy / playerState.maxEnergy) * 100);
+    document.getElementById('energy-fill').style.width = `${pct}%`;
+  }
+
+  /* ==================== MOTOR DE EJECUCIÓN DEL ALGORITMO ==================== */
+  function executeAlgorithm() {
+    if (isExecuting) return;
+    if (currentSequence.length === 0) {
+      showFeedback('¡Agregá al menos una instrucción a tu secuencia!', 'error');
+      return;
+    }
+
+    initAudio();
+    resetLevelState();
+    isExecuting = true;
+    setControlsEnabled(false);
+    hideFeedback();
+
+    // Desenrollar / Desarrollar bucles (LOOP_3)
+    let executionList = [];
+    for (let i = 0; i < currentSequence.length; i++) {
+      let cmd = currentSequence[i];
+      if (cmd === 'LOOP_3') {
+        if (i + 1 < currentSequence.length) {
+          let nextCmd = currentSequence[i + 1];
+          for (let r = 0; r < 3; r++) {
+            executionList.push({ type: nextCmd, uiIndex: i + 1, fromLoop: true });
+          }
+          i++; // Saltear el comando repetido
+        } else {
+          executionList.push({ type: 'LOOP_3', uiIndex: i });
+        }
+      } else {
+        executionList.push({ type: cmd, uiIndex: i });
+      }
+    }
+
+    let stepIdx = 0;
+
+    function step() {
+      if (stepIdx >= executionList.length) {
+        // Fin de la secuencia
+        checkWinCondition();
+        return;
+      }
+
+      const item = executionList[stepIdx];
+      
+      // Resaltar elemento activo en UI
+      highlightUIStep(item.uiIndex);
+
+      // Aplicar comando
+      const result = processCommand(item.type);
+
+      drawGrid();
+      updateStatusBar();
+
+      if (!result.success) {
+        // Fallo del algoritmo
+        isExecuting = false;
+        setControlsEnabled(true);
+        playBeep(150, 'sawtooth', 0.3);
+        showFeedback(`❌ Fallo en el paso ${item.uiIndex + 1}: ${result.reason}`, 'error');
+        return;
+      }
+
+      stepIdx++;
+      setTimeout(step, 600); // Velocidad de paso
+    }
+
+    step();
+  }
+
+  function highlightUIStep(index) {
+    document.querySelectorAll('.sequence-item').forEach(el => el.classList.remove('active'));
+    const activeEl = document.getElementById(`seq-item-${index}`);
+    if (activeEl) activeEl.classList.add('active');
+  }
+
+  function processCommand(type) {
+    // Verificar energía
+    if (type !== 'MATE' && playerState.energy <= 0) {
+      return { success: false, reason: "¡Ada se quedó sin energía! Usá 'Tomar Mate' para recargar." };
+    }
+
+    playBeep(500, 'sine', 0.08);
+
+    if (type === 'MOVE') {
+      playerState.energy--;
+      let nextX = playerState.x;
+      let nextY = playerState.y;
+
+      if (playerState.dir === 0) nextX++;
+      if (playerState.dir === 1) nextY++;
+      if (playerState.dir === 2) nextX--;
+      if (playerState.dir === 3) nextY--;
+
+      return validateAndMove(nextX, nextY);
+
+    } else if (type === 'TURN_L') {
+      playerState.dir = (playerState.dir + 3) % 4; // Girar 90° izq
+      return { success: true };
+
+    } else if (type === 'TURN_R') {
+      playerState.dir = (playerState.dir + 1) % 4; // Girar 90° der
+      return { success: true };
+
+    } else if (type === 'JUMP') {
+      playerState.energy--;
+      let nextX = playerState.x;
+      let nextY = playerState.y;
+
+      // Avanza 2 casilleros saltando el del medio
+      if (playerState.dir === 0) nextX += 2;
+      if (playerState.dir === 1) nextY += 2;
+      if (playerState.dir === 2) nextX -= 2;
+      if (playerState.dir === 3) nextY -= 2;
+
+      return validateAndMove(nextX, nextY);
+
+    } else if (type === 'MATE') {
+      playerState.energy = Math.min(playerState.maxEnergy, playerState.energy + 4);
+      playBeep(700, 'triangle', 0.15);
+      return { success: true };
+
+    } else if (type === 'PICKUP') {
+      const cell = levelGrid[playerState.y][playerState.x];
+      if (cell === 3) {
+        levelGrid[playerState.y][playerState.x] = 0; // Recogida
+        totalCollected++;
+        playBeep(880, 'sine', 0.2);
+        return { success: true };
+      } else {
+        return { success: false, reason: "No hay ninguna pieza para recoger en esta casilla." };
+      }
+    }
+
+    return { success: true };
+  }
+
+  function validateAndMove(nx, ny) {
+    const level = LEVELS[currentLevelIdx];
+
+    // Chequeo límites tablero
+    if (nx < 0 || nx >= level.gridSize || ny < 0 || ny >= level.gridSize) {
+      return { success: false, reason: "Ada intentó salir de los límites de la máquina." };
+    }
+
+    const targetCell = levelGrid[ny][nx];
+
+    if (targetCell === 1) { // Muro
+      return { success: false, reason: "¡Chocaste contra los engranajes y tuberías!" };
+    }
+
+    if (targetCell === 2) { // Vapor
+      return { success: false, reason: "Caíste en un escape de vapor sin saltar." };
+    }
+
+    // Movimiento válido
+    playerState.x = nx;
+    playerState.y = ny;
+    return { success: true };
+  }
+
+  function checkWinCondition() {
+    isExecuting = false;
+    setControlsEnabled(true);
+
+    if (totalCollected === targetPieces) {
+      playBeep(600, 'sine', 0.1);
+      setTimeout(() => playBeep(900, 'sine', 0.25), 120);
+      
+      // Guardar métrica
+      blocksUsedPerLevel[currentLevelIdx] = currentSequence.length;
+
+      showFactModal();
+    } else {
+      showFeedback(`⚠️ Ejecución finalizada pero faltan piezas. Recogiste ${totalCollected} de ${targetPieces}.`, 'info');
+    }
+  }
+
+  function setControlsEnabled(enabled) {
+    document.getElementById('btn-execute').disabled = !enabled;
+    document.getElementById('btn-reset').disabled = !enabled;
+  }
+
+  function showFeedback(msg, type) {
+    const fb = document.getElementById('feedback-box');
+    fb.innerText = msg;
+    fb.className = `feedback-box ${type}`;
+  }
+
+  function hideFeedback() {
+    const fb = document.getElementById('feedback-box');
+    fb.className = 'feedback-box';
+    fb.innerText = '';
+  }
+
+  /* ==================== MODAL DE DATO HISTÓRICO ==================== */
+  function showFactModal() {
+    const level = LEVELS[currentLevelIdx];
+    document.getElementById('fact-text').innerText = level.fact;
+    document.getElementById('modal-congrats').innerText = `¡Completaste el ${level.title} usando ${currentSequence.length} bloques!`;
+    document.getElementById('modal-avatar').innerText = level.avatar;
+
+    const nextBtn = document.getElementById('modal-next-btn');
+    if (currentLevelIdx + 1 < LEVELS.length) {
+      nextBtn.innerText = "Siguiente Nivel ➔";
+    } else {
+      nextBtn.innerText = "Ver Resumen Final 🏆";
+    }
+
+    document.getElementById('modal-fact').classList.add('active');
+  }
+
+  function nextLevel() {
+    document.getElementById('modal-fact').classList.remove('active');
+    if (currentLevelIdx + 1 < LEVELS.length) {
+      currentLevelIdx++;
+      loadLevel(currentLevelIdx);
+    } else {
+      showEndScreen();
+    }
+  }
+
+  /* ==================== PANTALLA RESUMEN FINAL ==================== */
+  function showEndScreen() {
+    showScreen('screen-end');
+    const tbody = document.getElementById('summary-body');
+    tbody.innerHTML = '';
+
+    LEVELS.forEach((lvl, i) => {
+      const used = blocksUsedPerLevel[i];
+      const min = lvl.minBlocks;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${lvl.title}</td>
+        <td style="color: ${used <= min ? 'var(--accent-green)' : 'var(--accent-yellow)'}; font-weight:bold;">${used}</td>
+        <td>${min}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Inicialización al cargar la ventana
+  window.onload = function() {
+    showIntroScreen();
+  };
+</script>
+</body>
+</html>
